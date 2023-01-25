@@ -6,9 +6,8 @@ class Parser {
     constructor(messages) {
         this.messages = messages;
     }
-    parseText() { }
     parse() {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b, _c, _d, _e, _f, _g;
         this.messages = this.messages.filter((msg) => msg.platform === "TELEGRAM");
         let result = [];
         for (let msg of this.messages) {
@@ -36,6 +35,14 @@ class Parser {
                         buttons: inlineKeyboard,
                     };
                     result.push(response);
+                    break;
+                case enums_1.TelegramResponseType.Image:
+                    result.push({
+                        type: enums_1.TelegramResponseType.Image,
+                        url: (_g = msg.image) === null || _g === void 0 ? void 0 : _g.imageUri,
+                    });
+                    break;
+                default:
                     break;
             }
         }

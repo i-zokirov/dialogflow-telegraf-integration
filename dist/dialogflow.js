@@ -18,18 +18,25 @@ const config_1 = require("./config");
 const enums_1 = require("./enums");
 const Parser_1 = __importDefault(require("./Parser"));
 const client = new dialogflow_1.default.SessionsClient();
-const detecIntent = (sessionId, query, contexts) => __awaiter(void 0, void 0, void 0, function* () {
+const detecIntent = (sessionId, query, contexts, type) => __awaiter(void 0, void 0, void 0, function* () {
     // The path to identify the agent that owns the created intent.
     const sessionPath = client.projectAgentSessionPath(config_1.dl_projectId, sessionId);
+    const textInput = {
+        text: {
+            text: query,
+            languageCode: config_1.dl_languageCode,
+        },
+    };
+    const eventInput = {
+        event: {
+            name: query,
+            languageCode: config_1.dl_languageCode,
+        },
+    };
     // The text query request.
     const request = {
         session: sessionPath,
-        queryInput: {
-            text: {
-                text: query,
-                languageCode: config_1.dl_languageCode,
-            },
-        },
+        queryInput: type === enums_1.DlQueryType.Text ? textInput : eventInput,
         queryParams: {
             contexts: [],
         },
@@ -45,16 +52,9 @@ const detecIntent = (sessionId, query, contexts) => __awaiter(void 0, void 0, vo
 const executeQuery = (query, sessionId, type) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     try {
-        let context = [];
-        let intentResponse = yield detecIntent(sessionId, query, context);
-        switch (type) {
-            case enums_1.DlQueryType.Text:
-                intentResponse = yield detecIntent(sessionId, query, context);
-                break;
-            case enums_1.DlQueryType.Event:
-                break;
-        }
-        context = (_a = intentResponse.queryResult) === null || _a === void 0 ? void 0 : _a.outputContexts;
+        let contexts = [];
+        let intentResponse = yield detecIntent(sessionId, query, contexts, type);
+        contexts = (_a = intentResponse.queryResult) === null || _a === void 0 ? void 0 : _a.outputContexts;
         let messages;
         if (intentResponse.queryResult.fulfillmentMessages) {
             messages = (_b = intentResponse.queryResult.fulfillmentMessages) === null || _b === void 0 ? void 0 : _b.filter((msg) => msg.platform === "TELEGRAM");
@@ -65,6 +65,7 @@ const executeQuery = (query, sessionId, type) => __awaiter(void 0, void 0, void 
     }
     catch (error) {
         console.log(error);
+        throw error;
     }
 });
 exports.executeQuery = executeQuery;

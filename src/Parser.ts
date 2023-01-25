@@ -1,12 +1,9 @@
-import * as protos from "@google-cloud/dialogflow/build/protos/protos";
 import { TelegramResponseType } from "./enums";
 import { FulfillmentMessage } from "./interfaces";
 import { Markup } from "telegraf";
-import * as telegrafTypes from "telegraf/types";
+
 class Parser {
     constructor(public messages: FulfillmentMessage[]) {}
-
-    parseText() {}
     parse() {
         this.messages = this.messages.filter(
             (msg) => msg.platform === "TELEGRAM"
@@ -46,6 +43,15 @@ class Parser {
                         buttons: inlineKeyboard,
                     };
                     result.push(response);
+                    break;
+
+                case TelegramResponseType.Image:
+                    result.push({
+                        type: TelegramResponseType.Image,
+                        url: msg.image?.imageUri,
+                    });
+                    break;
+                default:
                     break;
             }
         }

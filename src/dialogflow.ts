@@ -1,14 +1,19 @@
 import dialogflow from "@google-cloud/dialogflow";
 import * as protos from "@google-cloud/dialogflow/build/protos/protos";
 import { dl_projectId, dl_languageCode, dl_agentId } from "./config";
-import { JsonObject, struct } from "pb-util/build";
+
 import { DlQueryType } from "./enums";
 import Parser from "./Parser";
 import { FulfillmentMessage } from "./interfaces";
 
 const client = new dialogflow.SessionsClient();
 
-const detecIntent = async (sessionId: string, query: string, contexts: any) => {
+const detecIntent = async (
+    sessionId: string,
+    query: string,
+    contexts: protos.google.cloud.dialogflow.v2.IContext[],
+    type: DlQueryType
+) => {
     // The path to identify the agent that owns the created intent.
 
     const sessionPath = client.projectAgentSessionPath(
@@ -16,15 +21,22 @@ const detecIntent = async (sessionId: string, query: string, contexts: any) => {
         sessionId
     );
 
-    // The text query request.
-    const request = {
-        session: sessionPath,
-        queryInput: {
-            text: {
-                text: query,
-                languageCode: dl_languageCode,
-            },
+    const textInput = {
+        text: {
+            text: query,
+            languageCode: dl_languageCode,
         },
+    };
+    const eventInput = {
+        event: {
+            name: query,
+            languageCode: dl_languageCode,
+        },
+    };
+    // The text query request.
+    const request: protos.google.cloud.dialogflow.v2.IDetectIntentRequest = {
+        session: sessionPath,
+        queryInput: type === DlQueryType.Text ? textInput : eventInput,
         queryParams: {
             contexts: [],
         },
@@ -46,19 +58,18 @@ export const executeQuery = async (
     type: DlQueryType
 ) => {
     try {
-        let context: any[] | null | undefined = [];
-
-        let intentResponse = await detecIntent(sessionId, query, context);
-        switch (type) {
-            case DlQueryType.Text:
-                intentResponse = await detecIntent(sessionId, query, context);
-                break;
-            case DlQueryType.Event:
-                break;
-        }
-        context = intentResponse.queryResult?.outputContexts;
+        let contexts:
+            | protos.google.cloud.dialogflow.v2.IContext[]
+            | null
+            | undefined = [];
+        let intentResponse = await detecIntent(
+            sessionId,
+            query,
+            contexts,
+            type
+        );
+        contexts = intentResponse.queryResult?.outputContexts;
         let messages: FulfillmentMessage[];
-
         if (intentResponse.queryResult!.fulfillmentMessages) {
             messages = intentResponse.queryResult!.fulfillmentMessages?.filter(
                 (msg) => msg.platform === "TELEGRAM"
@@ -69,5 +80,6 @@ export const executeQuery = async (
         }
     } catch (error) {
         console.log(error);
+        throw error;
     }
 };
